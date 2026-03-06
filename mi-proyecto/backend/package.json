@@ -1,0 +1,24 @@
+{
+    "name": "mini-tienda-backend",
+    "version": "1.0.0",
+    "description": "Backend seguro para Mini-Tienda",
+    "main": "app.js",
+    "scripts": {
+      "start": "node app.js",
+      "dev": "nodemon app.js"
+    },
+    "dependencies": {
+      "express": "^4.18.2",
+      "sqlite3": "^5.1.6",
+      "bcrypt": "^5.1.1",
+      "jsonwebtoken": "^9.0.0",
+      "express-validator": "^7.0.1",
+      "cors": "^2.8.5",
+      "helmet": "^7.1.0",
+      "express-rate-limit": "^7.1.5",
+      "multer": "^1.4.5-lts.1"
+    },
+    "devDependencies": {
+      "nodemon": "^2.0.22"
+    }
+  }

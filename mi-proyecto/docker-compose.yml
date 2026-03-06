@@ -1,18 +1,23 @@
+
 services:
-  # Servicio del Backend (Node.js, Python, PHP...)
   api:
     build: ./backend
     ports:
-      - "3000:3000"  # Mapea el puerto 3000 del contenedor al 3000 de tu PC
-    volumes:
-      - ./backend:/app # Sincroniza tu código para ver cambios en vivo
+      - "3000:3000"
     environment:
       - NODE_ENV=production
+      - PORT=3000
+      - JWT_SECRET=UnJ3nD3S3cR3t0MuyL4rg0YCompl3j0!2026
+    volumes:
+      - ./backend/db:/app/db
+      - ./backend/uploads:/app/uploads
+    command: npm start
 
-  # Servicio del Frontend (Servidor web sencillo)
   web:
     image: nginx:alpine
     ports:
-      - "8080:80"    # Entrarás a tu app desde http://localhost:8080
+      - "8080:80"
     volumes:
-      - ./frontend:/usr/share/nginx/html # Sirve tus archivos HTML/JS
+      - ./frontend:/usr/share/nginx/html
+    depends_on:
+      - api
