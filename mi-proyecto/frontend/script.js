@@ -5,6 +5,61 @@ const baseUrl = API_URL.replace('/api', ''); // http://localhost:3000
 let currentUser = null;
 let cart = [];
 
+// ========== VALIDACIÓN DE CONTRASEÑA EN TIEMPO REAL ==========
+const passwordInput = document.getElementById('regPassword');
+const confirmInput = document.getElementById('regConfirmPassword');
+const passwordHelp = document.getElementById('passwordHelp');
+const passwordFeedback = document.getElementById('passwordFeedback');
+const confirmFeedback = document.getElementById('confirmFeedback');
+
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+function validateConfirm() {
+    if (!confirmInput) return;
+    const password = passwordInput.value;
+    const confirm = confirmInput.value;
+    if (password === confirm && password.length > 0) {
+        confirmInput.classList.remove('is-invalid');
+        confirmInput.classList.add('is-valid');
+        if (confirmFeedback) confirmFeedback.textContent = '';
+    } else if (confirm.length > 0) {
+        confirmInput.classList.remove('is-valid');
+        confirmInput.classList.add('is-invalid');
+        if (confirmFeedback) confirmFeedback.textContent = 'Las contraseñas no coinciden';
+    } else {
+        confirmInput.classList.remove('is-valid', 'is-invalid');
+        if (confirmFeedback) confirmFeedback.textContent = '';
+    }
+}
+
+if (passwordInput) {
+    passwordInput.addEventListener('input', function() {
+        const password = this.value;
+        if (passwordRegex.test(password)) {
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+            if (passwordHelp) {
+                passwordHelp.classList.add('text-success');
+                passwordHelp.classList.remove('text-muted');
+            }
+        } else {
+            this.classList.remove('is-valid');
+            this.classList.add('is-invalid');
+            if (passwordHelp) {
+                passwordHelp.classList.remove('text-success');
+                passwordHelp.classList.add('text-muted');
+            }
+        }
+        if (confirmInput && confirmInput.value) {
+            validateConfirm();
+        }
+    });
+}
+
+if (confirmInput) {
+    confirmInput.addEventListener('input', validateConfirm);
+}
+
 // Elementos del DOM
 const viewContainer = document.getElementById('viewContainer');
 const userDropdown = document.getElementById('userDropdown');
@@ -46,21 +101,26 @@ function showAlert(message, type = 'success', container = viewContainer) {
 function updateUIForUser() {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
+    
     if (token && userData) {
         currentUser = JSON.parse(userData);
         usernameSpan.textContent = currentUser.username;
         userDropdown.style.display = 'block';
         loginNavItem.style.display = 'none';
         registerNavItem.style.display = 'none';
-        misProductosLink.style.display = 'block';
-        misComprasLink.style.display = 'block';
+        
+        // Mostrar los elementos del menú privado (los li completos)
+        document.getElementById('misProductosNavItem').style.display = 'block';
+        document.getElementById('misComprasNavItem').style.display = 'block';
     } else {
         currentUser = null;
         userDropdown.style.display = 'none';
         loginNavItem.style.display = 'block';
         registerNavItem.style.display = 'block';
-        misProductosLink.style.display = 'none';
-        misComprasLink.style.display = 'none';
+        
+        // Ocultar los elementos del menú privado
+        document.getElementById('misProductosNavItem').style.display = 'none';
+        document.getElementById('misComprasNavItem').style.display = 'none';
     }
 }
 
@@ -364,6 +424,22 @@ document.getElementById('checkoutBtn').addEventListener('click', async () => {
 });
 
 // ========== AUTENTICACIÓN ==========
+// Al cerrar el modal de login
+document.getElementById('loginModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('loginForm').reset();
+});
+
+// Al cerrar el modal de registro
+document.getElementById('registerModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('registerForm').reset();
+});
+
+// Al cerrar el modal de producto
+document.getElementById('productModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('productForm').reset();
+    document.getElementById('imagePreview').innerHTML = '';
+});
+
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = document.getElementById('loginUsername').value;
@@ -392,14 +468,22 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    
     const email = document.getElementById('regEmail').value;
     const username = document.getElementById('regUsername').value;
-    const password = document.getElementById('regPassword').value;
-    const confirm = document.getElementById('regConfirmPassword').value;
+    const password = passwordInput.value;
+    const confirm = confirmInput.value;
+
+    // Validación previa en frontend
+    if (!passwordRegex.test(password)) {
+        showAlert('La contraseña no cumple los requisitos mínimos', 'danger');
+        return;
+    }
     if (password !== confirm) {
         showAlert('Las contraseñas no coinciden', 'danger');
         return;
     }
+
     try {
         const res = await fetch(`${API_URL}/register`, {
             method: 'POST',
@@ -407,15 +491,108 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
             body: JSON.stringify({ email, username, password })
         });
         const data = await res.json();
+        
         if (res.ok) {
             showAlert('Registro exitoso. Ahora puedes iniciar sesión.', 'success');
             registerModal.hide();
             document.getElementById('loginForm').reset();
+            // Limpiar campos de registro
+            document.getElementById('registerForm').reset();
+            passwordInput.classList.remove('is-valid', 'is-invalid');
+            confirmInput.classList.remove('is-valid', 'is-invalid');
         } else {
-            showAlert(data.error || 'Error en el registro', 'danger');
+            // Mostrar errores específicos del backend
+            if (data.errors && Array.isArray(data.errors)) {
+                // Si hay errores de validación de express-validator
+                const mensajes = data.errors.map(e => e.msg).join('. ');
+                showAlert(mensajes, 'danger');
+            } else if (data.error) {
+                showAlert(data.error, 'danger');
+            } else {
+                showAlert('Error en el registro', 'danger');
+            }
         }
     } catch (error) {
-        showAlert('Error de conexión', 'danger');
+        console.error('Error:', error);
+        showAlert('Error de conexión con el servidor', 'danger');
+    }
+});
+
+    confirmInput.addEventListener('input', validateConfirm);
+
+    function validateConfirm() {
+        const password = passwordInput.value;
+        const confirm = confirmInput.value;
+        if (password === confirm && password.length > 0) {
+            confirmInput.classList.remove('is-invalid');
+            confirmInput.classList.add('is-valid');
+            confirmFeedback.textContent = '';
+        } else if (confirm.length > 0) {
+            confirmInput.classList.remove('is-valid');
+            confirmInput.classList.add('is-invalid');
+            confirmFeedback.textContent = 'Las contraseñas no coinciden';
+        } else {
+            confirmInput.classList.remove('is-valid', 'is-invalid');
+            confirmFeedback.textContent = '';
+        }
+    }
+
+    document.getElementById('registerModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('registerForm').reset();
+        passwordInput.classList.remove('is-valid', 'is-invalid');
+        confirmInput.classList.remove('is-valid', 'is-invalid');
+    });
+
+// ========== MANEJO DEL REGISTRO MEJORADO ==========
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const email = document.getElementById('regEmail').value;
+    const username = document.getElementById('regUsername').value;
+    const password = passwordInput.value;
+    const confirm = confirmInput.value;
+
+    // Validación previa en frontend
+    if (!passwordRegex.test(password)) {
+        showAlert('La contraseña no cumple los requisitos mínimos', 'danger');
+        return;
+    }
+    if (password !== confirm) {
+        showAlert('Las contraseñas no coinciden', 'danger');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, username, password })
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+            showAlert('Registro exitoso. Ahora puedes iniciar sesión.', 'success');
+            registerModal.hide();
+            document.getElementById('loginForm').reset();
+            // Limpiar campos de registro
+            document.getElementById('registerForm').reset();
+            passwordInput.classList.remove('is-valid', 'is-invalid');
+            confirmInput.classList.remove('is-valid', 'is-invalid');
+        } else {
+            // Mostrar errores específicos del backend
+            if (data.errors && Array.isArray(data.errors)) {
+                // Si hay errores de validación de express-validator
+                const mensajes = data.errors.map(e => e.msg).join('. ');
+                showAlert(mensajes, 'danger');
+            } else if (data.error) {
+                showAlert(data.error, 'danger');
+            } else {
+                showAlert('Error en el registro', 'danger');
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('Error de conexión con el servidor', 'danger');
     }
 });
 
@@ -465,9 +642,13 @@ logoutBtn.addEventListener('click', (e) => {
     localStorage.removeItem('user');
     currentUser = null;
     cart = [];
-    updateUIForUser();
-    renderCatalogo();
+    updateUIForUser();        // Actualiza la UI inmediatamente
+    renderCatalogo();         // Vuelve al catálogo
     showAlert('Sesión cerrada', 'info');
+    
+    // Limpiar formularios (opcional)
+    document.getElementById('loginForm').reset();
+    document.getElementById('registerForm').reset();
 });
 
 // ========== INICIO ==========

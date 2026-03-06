@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mini-Tienda · DAM/DAW</title>
+    <title>Mini-Tienda · DAM</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -23,8 +23,12 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item"><a class="nav-link" href="#" id="catalogoLink">Catálogo</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" id="misProductosLink">Mis Productos</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" id="misComprasLink">Mis Compras</a></li>
+                    <li class="nav-item" id="misProductosNavItem">
+                        <a class="nav-link" href="#" id="misProductosLink">Mis Productos</a>
+                    </li>
+                    <li class="nav-item" id="misComprasNavItem">
+                        <a class="nav-link" href="#" id="misComprasLink">Mis Compras</a>
+                    </li>
                     <li class="nav-item dropdown" id="userDropdown" style="display: none;">
                         <a class="nav-link dropdown-toggle" href="#" id="userDropdownLink" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user-circle"></i> <span id="usernameDisplay"></span>
@@ -91,10 +95,15 @@
                         <div class="mb-3">
                             <label for="regPassword" class="form-label">Contraseña</label>
                             <input type="password" class="form-control" id="regPassword" required>
+                            <div class="form-text" id="passwordHelp">
+                                Mínimo 8 caracteres, al menos una mayúscula, una minúscula, un número y un carácter especial (@$!%*?&)
+                            </div>
+                            <div class="invalid-feedback" id="passwordFeedback"></div>
                         </div>
                         <div class="mb-3">
-                            <label for="regConfirmPassword" class="form-label">Confirmar</label>
+                            <label for="regConfirmPassword" class="form-label">Confirmar contraseña</label>
                             <input type="password" class="form-control" id="regConfirmPassword" required>
+                            <div class="invalid-feedback" id="confirmFeedback"></div>
                         </div>
                         <button type="submit" class="btn btn-success w-100">Registrarse</button>
                     </form>
